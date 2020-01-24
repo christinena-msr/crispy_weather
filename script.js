@@ -1,11 +1,15 @@
 var searchBtn = document.querySelectorAll("button")[0];
+var searchBar = document.getElementById("search-bar");
 
-searchBtn.addEventListener("click", function() {
+searchBtn.addEventListener("click", function(event) {
+    event.preventDefault();
+    // grabs user input city
     var city = document.getElementById("search").value.trim();
+    var searchedCity = document.createElement("button");
+    searchedCity.textContent = city;
+    searchBar.append(searchedCity);
     console.log(city);
-    // const cityName = "seattle";
     const scale = "metric";
-    // seattle's lat & lon
     const apiKey = "ff97cd2016a7d31a541fa1023beaf384";
     const queryURL = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=${scale}&appid=${apiKey}`;
 
@@ -61,9 +65,10 @@ searchBtn.addEventListener("click", function() {
     })
         .then(function(response) {
             console.log(response);
+            var forecastBox = $(".forecast");
+            forecastBox.empty();
             for (let i=0; i<40; i=i+8) {
                 console.log(i);
-                var forecastBox = $(".forecast");
                 var box = $("<div>");
                 box.attr("class", "col-sm-2");
                 var dateArr = response.list[i].dt_txt.split(" ");
