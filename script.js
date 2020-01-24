@@ -1,4 +1,4 @@
-var searchBtn = document.querySelectorAll("button")[0];
+var searchBtn = document.getElementById("search-button");
 var searchBar = document.getElementById("search-bar");
 
 searchBtn.addEventListener("click", function(event) {
@@ -6,15 +6,25 @@ searchBtn.addEventListener("click", function(event) {
     // grabs user input city
     var city = document.getElementById("search").value.trim();
     var searchedCity = document.createElement("button");
+    searchedCity.setAttribute("class", "city-button");
     searchedCity.textContent = city;
-    searchBar.append(searchedCity);
+    searchBar.appendChild(searchedCity);
     console.log(city);
+    fetchAJAX(city);
+
+});
+
+// add each city's data into local storage
+// add event Listener for each button with class "city-button"
+// pull from local storage to repopulate the page 
+
+function fetchAJAX(cityName) {
     const scale = "metric";
     const apiKey = "ff97cd2016a7d31a541fa1023beaf384";
-    const queryURL = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=${scale}&appid=${apiKey}`;
+    const queryURL = `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&units=${scale}&appid=${apiKey}`;
 
 
-    const forecastURL = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=${scale}&appid=${apiKey}`;
+    const forecastURL = `https://api.openweathermap.org/data/2.5/forecast?q=${cityName}&units=${scale}&appid=${apiKey}`;
 
     var date = moment().format("L");
 
@@ -27,6 +37,10 @@ searchBtn.addEventListener("click", function(event) {
             console.log(date);
             console.log(queryURL);
             console.log(response);
+            const lon = response.coord.lon;
+            console.log(lon);
+            const lat = response.coord.lat;
+            console.log(lat);
             //displays city name, date & weather icon
             var col = $(".current");
             col.attr("class", "col-sm-12");
@@ -41,10 +55,6 @@ searchBtn.addEventListener("click", function(event) {
             $(".humidity").text("Humidity: " + response.main.humidity);
             //temperature
             $(".temp").text("Temperature: " + response.main.temp + " C");
-            const lon = response.coord.lon;
-            console.log(lon);
-            const lat = response.coord.lat;
-            console.log(lat);
             const UVurl = `http://api.openweathermap.org/data/2.5/uvi?appid=${apiKey}&lat=${lat}&lon=${lon}`;
             //  jQuery AJAX call to weatherAPI for UV index
             $.ajax({
@@ -56,7 +66,7 @@ searchBtn.addEventListener("click", function(event) {
                     console.log(response);
                     $(".uvIndex").text("UV Index: " + response.value);
                 });
-    });
+        });
 
     // 5 day forecast for one city AJAX call
     $.ajax({
@@ -92,4 +102,4 @@ searchBtn.addEventListener("click", function(event) {
                 forecastBox.append(box);
             }
         });
-});
+}
