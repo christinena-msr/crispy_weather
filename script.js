@@ -1,19 +1,8 @@
 var searchBtn = document.getElementById("search-button");
-var searchBar = document.getElementById("search-bar");
+var cityCache = document.getElementById("search-bar");
+var valid_input = true;
 
-searchBtn.addEventListener("click", function(event) {
-    event.preventDefault();
-    // grabs user input city
-    var city = document.getElementById("search").value.trim();
-    var searchedCity = document.createElement("button");
-    searchedCity.setAttribute("class", "city-button");
-    searchedCity.textContent = city;
-    searchBar.appendChild(searchedCity);
-    console.log(city);
-    fetchAJAX(city);
-
-});
-
+const searchedCities = {};
 // add each city's data into local storage
 // add event Listener for each button with class "city-button"
 // pull from local storage to repopulate the page 
@@ -33,40 +22,58 @@ function fetchAJAX(cityName) {
         url: queryURL,
         method: "GET"
     })
+    // on success
+    .then(function(response) {
+        const lon = response.coord.lon;
+        const lat = response.coord.lat;
+        //displays city name, date & weather icon
+        $(".city").html("<h1>" + response.name + "</h1>");
+        $(".date").html("<h2>" + date + "</h2>");
+
+        let response_description = response.weather[0].description;
+        let description = response_description[0].toUpperCase();
+        for(let i = 1; i < response_description.length; i++) {
+            if (response_description[i - 1] === " ") {
+                description += response_description[i].toUpperCase();
+            } else {
+                description += response_description[i];
+            }
+        }
+        console.log(description);
+        $(".description").text(description);
+        $("#icon").empty();
+        var iconcode = response.weather[0].icon;
+        console.log(response);
+        var iconurl = "http://openweathermap.org/img/wn/" + iconcode + "@2x.png";
+        var icon = document.createElement("img");
+        icon.setAttribute('src', iconurl);
+        $("#icon").append(icon);
+        
+        //displays wind speed
+        $(".wind").text("Wind Speed: " + response.wind.speed + " kph");
+        
+        //humidity %
+        $(".humidity").text("Humidity: " + response.main.humidity + "%");
+        
+        //temperature
+        $(".temp").text("Temperature: " + response.main.temp + " °C");
+        
+        const UVurl = `http://api.openweathermap.org/data/2.5/uvi?appid=${apiKey}&lat=${lat}&lon=${lon}`;
+        //  jQuery AJAX call to weatherAPI for UV index
+        $.ajax({
+            url: UVurl,
+            method: "GET"
+        })
         .then(function(response) {
-            console.log(date);
-            console.log(queryURL);
-            console.log(response);
-            const lon = response.coord.lon;
-            console.log(lon);
-            const lat = response.coord.lat;
-            console.log(lat);
-            //displays city name, date & weather icon
-            var col = $(".current");
-            col.attr("class", "col-sm-12");
-            $(".city").html("<h1>" + response.name + " (" + date + ")</h1>");
-            //pulled code from stack overflow
-            var iconcode = response.weather[0].icon;
-            var iconurl = "http://openweathermap.org/img/w/" + iconcode + ".png";
-            $('#wicon').attr('src', iconurl);
-            //displays wind speed
-            $(".wind").text("Wind Speed: " + response.wind.speed);
-            //humidity %
-            $(".humidity").text("Humidity: " + response.main.humidity);
-            //temperature
-            $(".temp").text("Temperature: " + response.main.temp + " C");
-            const UVurl = `http://api.openweathermap.org/data/2.5/uvi?appid=${apiKey}&lat=${lat}&lon=${lon}`;
-            //  jQuery AJAX call to weatherAPI for UV index
-            $.ajax({
-                url: UVurl,
-                method: "GET"
-            })
-                .then(function(response) {
-                    console.log(UVurl);
-                    console.log(response);
-                    $(".uvIndex").text("UV Index: " + response.value);
-                });
+            $(".uvIndex").text("UV Index: " + response.value);
         });
+    })
+
+    // on error
+    .fail(function() {
+        alert("please enter a valid city name");
+        valid_input = false;
+    });
 
     // 5 day forecast for one city AJAX call
     $.ajax({
@@ -74,32 +81,59 @@ function fetchAJAX(cityName) {
         method: "GET"
     })
         .then(function(response) {
-            console.log(response);
-            var forecastBox = $(".forecast");
+            // console.log(response);
+            $(".forecast-header").text("5 Day Forecast");
+            var forecastBox = $(".forecast-row");
             forecastBox.empty();
+
             for (let i=0; i<40; i=i+8) {
-                console.log(i);
                 var box = $("<div>");
-                box.attr("class", "col-sm-2");
+                box.attr("class", "tile rounded");
+
                 var dateArr = response.list[i].dt_txt.split(" ");
-                console.log(dateArr);
                 var dateBW = dateArr[0].split("-");
-                console.log(dateBW);
                 var date = $("<p>");
-                date.text(`${dateBW[1]}/${dateBW[2]}/${dateBW[0]}`);
+                date.text(`${dateBW[1]}/${dateBW[2]}`);
                 box.append(date);
+
                 var iconCode = response.list[i].weather[0].icon;
-                var iconURL = "http://openweathermap.org/img/w/" + iconCode + ".png";
+                var iconURL = "http://openweathermap.org/img/wn/" + iconCode + ".png";
                 var icon = $("<img>");
                 icon.attr("src", iconURL);
                 box.append(icon);
+
                 var temp = $("<p>");
-                temp.text("Temperature: " + response.list[i].main.temp + " C")
+                temp.text(response.list[i].main.temp + " °C")
                 box.append(temp);
+
                 var humid = $("<p>");
-                humid.text("Humidity: " + response.list[i].main.humidity + "%");
+                humid.text(response.list[i].main.humidity + "%");
                 box.append(humid);
+
                 forecastBox.append(box);
             }
         });
 }
+
+searchBtn.addEventListener("click", function(event) {
+    event.preventDefault();
+    // grabs user input city
+    var city = document.getElementById("search").value.trim();
+
+    // need to add some type of async/await functionality in order to check API
+    // do not want to add saved city if invalid input
+    fetchAJAX(city);
+    if (!searchedCities[city]) {
+        searchedCities[city] = true;
+        var searchedCity = document.createElement("button");
+        searchedCity.setAttribute("type", "button");
+        searchedCity.setAttribute("class", "btn btn-info");
+        searchedCity.textContent = city;
+        cityCache.appendChild(searchedCity);
+        searchedCity.addEventListener("click", function(event) {
+            event.preventDefault();
+            const city = searchedCity.textContent;
+            fetchAJAX(city);
+        })
+    }
+});
